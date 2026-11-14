@@ -1,6 +1,6 @@
-flask
+Flask
 flask-cors
 pandas
 openpyxl
+google-generativeai
 gunicorn
-requests
