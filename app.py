@@ -156,7 +156,7 @@ def generate_insights():
     try:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama3-8b-8192",  # Groq ka sabse fast model
+            model="llama-3.1-8b-instant",  # Groq ka sabse fast model
             response_format={"type": "json_object"}
         )
         
