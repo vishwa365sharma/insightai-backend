@@ -4,7 +4,7 @@ import pandas as pd
 import io
 import os
 import json
-import requests
+import google.generativeai as genai
 
 app = Flask(__name__)
 CORS(app)
@@ -13,7 +13,7 @@ current_df = None
 
 @app.route('/')
 def home():
-    return jsonify({"status": "InsightAI Backend is Live with GitHub Models (Direct API)!"})
+    return jsonify({"status": "InsightAI Backend is Live with Google Gemini!"})
 
 def analyze_dataframe(df):
     rows, cols = df.shape
@@ -91,9 +91,9 @@ def clean_data():
 
 @app.route('/generate-insights', methods=['POST'])
 def generate_insights():
-    github_token = os.environ.get("GITHUB_TOKEN", "")
-    if not github_token:
-        return jsonify({"error": "GITHUB_TOKEN server par set nahi hai."}), 500
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    if not gemini_key:
+        return jsonify({"error": "GEMINI_API_KEY server par set nahi hai."}), 500
 
     data_summary = request.json
     
@@ -119,39 +119,16 @@ def generate_insights():
     """
 
     try:
-        url = "https://models.inference.ai.azure.com/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {github_token}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": "Meta-Llama-3.1-8B-Instruct",
-            "messages": [
-                {"role": "system", "content": "You are an AI that outputs pure JSON only."},
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.1
-        }
+        genai.configure(api_key=gemini_key)
+        # Gemini 1.5 Flash - Sabse fast aur JSON mode support karta hai
+        model = genai.GenerativeModel('gemini-1.5-flash', generation_config={"response_mime_type": "application/json"})
+        response = model.generate_content(prompt)
         
-        # Direct API Call using requests
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
-        
-        # Agar error hoga toh exact reason UI par print karega
-        if response.status_code != 200:
-            return jsonify({"error": f"GitHub API Error: {response.text}"}), 500
-            
-        response_data = response.json()
-        response_text = response_data["choices"][0]["message"]["content"].strip()
-        
-        if response_text.startswith("```json"):
-            response_text = response_text[7:-3]
-        elif response_text.startswith("```"):
-            response_text = response_text[3:-3]
-            
-        return jsonify(json.loads(response_text.strip()))
+        response_text = response.text.strip()
+        return jsonify(json.loads(response_text))
         
     except Exception as e:
-        return jsonify({"error": f"Backend Error: {str(e)}"}), 500
+        return jsonify({"error": f"Gemini Error: {str(e)}"}), 500
 
 @app.route('/download-csv')
 def download_csv():
