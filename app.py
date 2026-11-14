@@ -4,26 +4,16 @@ import pandas as pd
 import io
 import os
 import json
-from openai import OpenAI
+import requests
 
 app = Flask(__name__)
 CORS(app)
-
-# GitHub Models API Setup
-github_token = os.environ.get("GITHUB_TOKEN", "")
-endpoint = "https://models.inference.ai.azure.com"
-model_name = "Meta-Llama-3.1-8B-Instruct"
-
-client = OpenAI(
-    base_url=endpoint,
-    api_key=github_token,
-) if github_token else None
 
 current_df = None
 
 @app.route('/')
 def home():
-    return jsonify({"status": "InsightAI Backend is Live with GitHub Models!"})
+    return jsonify({"status": "InsightAI Backend is Live with GitHub Models (Direct API)!"})
 
 def analyze_dataframe(df):
     rows, cols = df.shape
@@ -101,7 +91,8 @@ def clean_data():
 
 @app.route('/generate-insights', methods=['POST'])
 def generate_insights():
-    if client is None:
+    github_token = os.environ.get("GITHUB_TOKEN", "")
+    if not github_token:
         return jsonify({"error": "GITHUB_TOKEN server par set nahi hai."}), 500
 
     data_summary = request.json
@@ -128,16 +119,29 @@ def generate_insights():
     """
 
     try:
-        chat_completion = client.chat.completions.create(
-            messages=[
+        url = "https://models.inference.ai.azure.com/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {github_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "Meta-Llama-3.1-8B-Instruct",
+            "messages": [
                 {"role": "system", "content": "You are an AI that outputs pure JSON only."},
                 {"role": "user", "content": prompt}
             ],
-            model=model_name,
-            temperature=0.1
-        )
+            "temperature": 0.1
+        }
         
-        response_text = chat_completion.choices[0].message.content.strip()
+        # Direct API Call using requests
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        
+        # Agar error hoga toh exact reason UI par print karega
+        if response.status_code != 200:
+            return jsonify({"error": f"GitHub API Error: {response.text}"}), 500
+            
+        response_data = response.json()
+        response_text = response_data["choices"][0]["message"]["content"].strip()
         
         if response_text.startswith("```json"):
             response_text = response_text[7:-3]
@@ -147,7 +151,7 @@ def generate_insights():
         return jsonify(json.loads(response_text.strip()))
         
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Backend Error: {str(e)}"}), 500
 
 @app.route('/download-csv')
 def download_csv():
