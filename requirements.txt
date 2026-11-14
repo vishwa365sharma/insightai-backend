@@ -2,5 +2,5 @@ flask
 flask-cors
 pandas
 openpyxl
-openai
 gunicorn
+requests
