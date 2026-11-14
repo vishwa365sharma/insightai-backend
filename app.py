@@ -155,8 +155,11 @@ def generate_insights():
 
     try:
         chat_completion = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant",  # Groq ka sabse fast model
+            messages=[
+                {"role": "system", "content": "You are a helpful AI assistant. You must strictly output in JSON format."},
+                {"role": "user", "content": prompt}
+            ],
+            model="llama3-8b-8192",  # Model wapas stable wale par set kar diya
             response_format={"type": "json_object"}
         )
         
