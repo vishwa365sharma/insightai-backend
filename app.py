@@ -159,7 +159,7 @@ def generate_insights():
                 {"role": "system", "content": "You are a helpful AI assistant. You must strictly output in JSON format."},
                 {"role": "user", "content": prompt}
             ],
-            model="mixtral-8x7b-32768",  # Model wapas stable wale par set kar diya
+            model="gemma2-9b-it",  # Model wapas stable wale par set kar diya
             response_format={"type": "json_object"}
         )
         
